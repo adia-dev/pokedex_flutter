@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
-import 'package:pokedex_app/models/pokemon.dart';
-import 'package:pokedex_app/services/api_service.dart';
+import 'package:pokedex_app/providers/pokemon_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,121 +10,91 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Services
-  final Logger _logger = GetIt.instance<Logger>();
-  final ApiService _apiService = GetIt.instance<ApiService>();
-
-  // States
-  List<Pokemon> _pokemons = List.empty();
-  List<Pokemon> _filteredPokemons = List.empty();
-  TextEditingController _filterTextFieldController = TextEditingController();
-  String _filter = "";
-
   @override
   void initState() {
-    if (mounted) {
-      _fetchPokemons();
-    }
-
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    _filterTextFieldController.dispose();
-
-    super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<PokemonProvider>(context, listen: false).fetchPokemons();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          Center(
-            child: ElevatedButton(
-              onPressed: () async {
-                await _fetchPokemons();
-              },
-              child: const Text("Press to fetch Pokemons"),
-            ),
-          ),
-          TextField(
-            controller: _filterTextFieldController,
-            onChanged: (String value) {
-              _filter = value;
-              _filterPokemons();
-              setState(() {});
-            },
-          ),
-          Expanded(
-            child: GridView.builder(
-              itemCount: _filteredPokemons.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Row(
-                    children: [
-                      Flexible(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+      appBar: AppBar(
+        title: const Text('Pokédex'),
+      ),
+      body: Consumer<PokemonProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (provider.errorMessage.isNotEmpty) {
+            return Center(
+                child: Text(
+              provider.errorMessage,
+              style: const TextStyle(
+                color: Colors.red,
+              ),
+            ));
+          } else {
+            return Column(
+              children: [
+                TextField(
+                  onChanged: (String value) {
+                    provider.updateSearchQuery(value);
+                  },
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    itemCount: provider.pokemons.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Row(
                           children: [
-                            Text(
-                              _filteredPokemons[index].name,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    provider.pokemons[index].name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    "Id: ${provider.pokemons[index].id.toString()}",
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(
-                              "Id: ${_filteredPokemons[index].id.toString()}",
-                              style: const TextStyle(
-                                color: Colors.grey,
+                            Expanded(
+                              child: Image.network(
+                                provider.pokemons[index].imgUrl,
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Expanded(
-                        child: Image.network(
-                          _filteredPokemons[index].imgUrl,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ],
+                      );
+                    },
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 1,
+                    ),
                   ),
-                );
-              },
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 8,
-                childAspectRatio: 1,
-              ),
-            ),
-          )
-        ],
+                )
+              ],
+            );
+          }
+        },
       ),
     );
-  }
-
-  // Private methods
-
-  Future<void> _fetchPokemons() async {
-    _pokemons = await _apiService.fetchPokemonData();
-    _filteredPokemons = _pokemons;
-    _logger.i("Fetched ${_pokemons.length} pokemons !");
-    setState(() {});
-  }
-
-  void _filterPokemons() async {
-    if (_filter.isEmpty) {
-      _filteredPokemons = _pokemons;
-      return;
-    }
-
-    _filteredPokemons = _pokemons
-        .where((p) => p.name.toLowerCase().contains(_filter.toLowerCase()))
-        .toList();
   }
 }

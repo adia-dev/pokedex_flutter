@@ -28,10 +28,13 @@ extension GetItInjectableX on _i174.GetIt {
       environmentFilter,
     );
     final injectionModules = _$InjectionModules();
-    gh.factory<_i696.PokemonProvider>(() => _i696.PokemonProvider());
     gh.lazySingleton<_i974.Logger>(() => injectionModules.logger);
     gh.lazySingleton<_i687.ApiService>(
         () => _i687.ApiService(gh<_i120.Logger>()));
+    gh.factory<_i696.PokemonProvider>(() => _i696.PokemonProvider(
+          gh<_i687.ApiService>(),
+          gh<_i974.Logger>(),
+        ));
     return this;
   }
 }

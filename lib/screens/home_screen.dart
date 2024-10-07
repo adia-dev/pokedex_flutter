@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pokedex_app/widgets/pokemon_card.dart';
+import 'package:pokedex_app/widgets/pokemon_search_bar.dart';
+import 'package:pokedex_app/widgets/pokemon_type_filters_chips.dart';
 import 'package:pokedex_app/providers/pokemon_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -23,6 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pokédex'),
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
       ),
       body: Consumer<PokemonProvider>(
         builder: (context, provider, child) {
@@ -39,56 +44,25 @@ class _HomeScreenState extends State<HomeScreen> {
           } else {
             return Column(
               children: [
-                TextField(
-                  onChanged: (String value) {
-                    provider.updateSearchQuery(value);
-                  },
-                ),
+                const PokemonSearchBar(),
+                const PokemonTypeFiltersChips(),
                 Expanded(
-                  child: GridView.builder(
-                    itemCount: provider.pokemons.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Row(
-                          children: [
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    provider.pokemons[index].name,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    "Id: ${provider.pokemons[index].id.toString()}",
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: Image.network(
-                                provider.pokemons[index].imgUrl,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ],
+                  child: provider.pokemons.isEmpty
+                      ? const Center(child: Text('No Pokémons found.'))
+                      : GridView.builder(
+                          itemCount: provider.pokemons.length,
+                          itemBuilder: (context, index) {
+                            return PokemonCard.fromPokemon(
+                                provider.pokemons[index]);
+                          },
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 8,
+                            childAspectRatio: 1,
+                          ),
                         ),
-                      );
-                    },
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 8,
-                      childAspectRatio: 1,
-                    ),
-                  ),
                 )
               ],
             );

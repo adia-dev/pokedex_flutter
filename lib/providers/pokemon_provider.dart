@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logger/logger.dart';
 import 'package:pokedex_app/models/pokemon.dart';
@@ -7,8 +6,10 @@ import 'package:pokedex_app/services/api_service.dart';
 
 @injectable
 class PokemonProvider with ChangeNotifier {
-  final Logger _logger = GetIt.instance<Logger>();
-  final ApiService _apiService = GetIt.instance<ApiService>();
+  final ApiService _apiService;
+  final Logger _logger;
+
+  PokemonProvider(this._apiService, this._logger);
 
   // States
   List<Pokemon> _pokemons = [];
@@ -50,7 +51,7 @@ class PokemonProvider with ChangeNotifier {
   }
 
   void filterPokemons() {
-    if (_searchQuery.isEmpty) {
+    if (_searchQuery.isEmpty && _typeFilters.isEmpty) {
       _filteredPokemons = _pokemons;
       return;
     }
@@ -88,5 +89,24 @@ class PokemonProvider with ChangeNotifier {
 
     filterPokemons();
     notifyListeners();
+  }
+
+  void clearTypeFilters() {
+    _typeFilters.clear();
+    filterPokemons();
+    notifyListeners();
+  }
+
+  void toggleTypeFilter(String type) {
+    if (type == 'All') {
+      clearTypeFilters();
+      return;
+    }
+
+    if (_typeFilters.contains(type)) {
+      removeTypeFilter(type);
+    } else {
+      addTypeFilter(type);
+    }
   }
 }
